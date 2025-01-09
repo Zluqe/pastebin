@@ -1,70 +1,348 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Zluqet</title>
 
-	<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="shortcut icon" href="zluqe.png" type="image/x-icon" />
+  <!-- jQuery + highlight + application code (minified or original) -->
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+  <script type="text/javascript" src="highlight.min.js"></script>
+  <script type="text/javascript" src="application.min.js"></script>
 
-		<title>hastebin</title>
-		<meta charset="utf-8" />
-		<link rel="stylesheet" type="text/css" href="solarized_dark.css"/>
-		<link rel="stylesheet" type="text/css" href="application.css"/>
+  <!-- Inline CSS for dark mode + Material You style -->
+  <style>
+    :root {
+      --accent: #81c784;
+      --accent-hover: #a5d6a7;
+      --surface: #1e1e1e;
+      --surface-alt: #242424;
+      --text-color: #ffffff;
+      --text-subtle: #bdbdbd;
+    }
 
-		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-		<script type="text/javascript" src="highlight.min.js"></script>
-		<script type="text/javascript" src="application.min.js"></script>
+    body {
+      background: #121212;
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+      font-family: "Roboto", "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
 
-		<meta name="robots" content="noindex,nofollow"/>
+    main {
+      padding-top: 130px; /* space for nav on desktop */
+      margin: 0 auto;
+      max-width: 1200px;
+      padding-bottom: 2rem;
+    }
 
-		<script type="text/javascript">
-			var app = null;
-			// Handle pops
-			var handlePop = function(evt) {
-				var path = evt.target.location.href;
-				if (path === app.baseUrl) { app.newDocument(true); }
-				else { app.loadDocument(path.split('/').slice(-1)[0]); }
-			};
-			// Set up the pop state to handle loads, skipping the first load
-			// to make chrome behave like others:
-			// http://code.google.com/p/chromium/issues/detail?id=63040
-			setTimeout(function() {
-				window.onpopstate = function(evt) {
-					try { handlePop(evt); } catch(err) { /* not loaded yet */ }
-				};
-			}, 1000);
-			// Construct app and load initial path
-			$(function() {
-				var baseUrl = window.location.href.split('/');
-				baseUrl = baseUrl.slice(0, baseUrl.length - 1).join('/') + '/';
-				app = new haste('hastebin', { twitter: true, baseUrl: baseUrl });
-				handlePop({ target: window });
-			});
-		</script>
+    /* messages */
+    ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+    }
+    #messages {
+      position: fixed;
+      top: 0;
+      right: 20px;
+      width: 400px;
+      z-index: 9999;
+    }
+    #messages li {
+      background: rgba(50, 75, 92, 0.9);
+      font-size: 14px;
+      line-height: 18px;
+      padding: 10px 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      margin-bottom: 4px;
+      border-radius: 6px;
+    }
+    #messages li.error {
+      background: rgba(102, 8, 0, 0.8);
+    }
 
-	</head>
+    /* navbar (key) */
+    #key {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: var(--surface-alt);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      min-width: 400px;
+    }
+    #pointer {
+      display: none;
+    }
 
-	<body>
-		<ul id="messages"></ul>
+    /* logo area */
+    #box1 {
+      padding: 10px 15px;
+      background: transparent;
+      text-align: center;
+    }
+    #box1 a.logo {
+      margin-top: 10px;
+      display: inline-block;
+      width: 100px;
+      height: 40px;
+      background: url("z-full.png")
+                  no-repeat center center;
+      background-size: contain;
+      text-indent: -9999px;
+      overflow: hidden;
+      transition: opacity 0.3s ease;
+    }
+    #box1 a.logo:hover {
+      opacity: 0.8;
+    }
 
-		<div id="key">
-		  <div id="pointer" style="display:none;"></div>
-			<div id="box1">
-				<a href="about.md" class="logo"></a>
-			</div>
-			<div id="box2">
-				<button class="save function button-picture">Save</button>
-				<button class="new function button-picture">New</button>
-				<button class="duplicate function button-picture">Duplicate & Edit</button>
-				<button class="raw function button-picture">Just Text</button>
-				<button class="twitter function button-picture">Twitter</button>
-			</div>
-			<div id="box3" style="display:none;">
-				<div class="label"></div>
-				<div class="shortcut"></div>
-			</div>
-		</div>
+    /* button bar */
+    #box2 {
+      background: transparent;
+      font-size: 0;
+      padding: 5px 10px;
+      display: flex;
+      gap: 10px;
+    }
+    #box2 .function {
+      background: var(--surface);
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      height: 36px;
+      border-radius: 18px;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+      color: var(--text-color);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    #box2 .function:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: scale(1.03);
+    }
+    #box2 .function.button-picture {
+      background-image: none;
+    }
 
-		<div id="linenos"></div>
-		<pre id="box" style="display:none;" class="hljs" tabindex="0"><code></code></pre>
-		<textarea spellcheck="false" style="display:none;"></textarea>
+    /* box3 (hidden area) */
+    #box3 {
+      display: none;
+      background: var(--surface);
+      font-size: 14px;
+      line-height: 18px;
+      padding: 10px 15px;
+      color: var(--text-color);
+      user-select: none;
+    }
+    #box3 .label {
+      font-weight: bold;
+    }
+    #box3 .shortcut {
+      color: var(--text-subtle);
+      font-weight: normal;
+    }
 
-	</body>
+    /* line numbers */
+    #linenos {
+      color: var(--text-subtle);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 30px;
+      font-size: 14px;
+      font-family: monospace;
+      text-align: right;
+      user-select: none;
+      margin-top: 0;
+      padding-top: 0;
+    }
 
+    /* code box (locked) */
+    #box {
+      margin: 0;
+      width: 100%;
+      border: none;
+      outline: none;
+      font-size: 14px;
+      overflow: auto;
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--text-color);
+    }
+    #box code {
+      background: transparent !important;
+      color: var(--text-color);
+    }
+
+    /* textarea */
+    textarea {
+      display: block;
+      width: 100%;
+      height: 60vh;
+      font-family: monospace;
+      font-size: 14px;
+      color: var(--text-color);
+      background: var(--surface);
+      border: none;
+      outline: none;
+      resize: none;
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+	#footer-note {
+		text-align: center;
+		font-size: 12px;      /* tiny text */
+		color: #888;         /* a gray color */
+		margin-top: 20px;    /* some space above the footer */
+		padding: 10px 0;     /* top/bottom padding to give it a little cushion */
+		/* If you want a darker/lighter gray, tweak color. e.g., #aaa or #666 */
+	}
+
+    /*
+      MOBILE-FRIENDLY RESPONSIVE RULES
+      Tweak as needed for your device.
+    */
+    @media (max-width: 600px) {
+
+      /* Give the entire page some horizontal breathing room */
+      body {
+        margin: 0;
+        padding: 0;
+		overflow-x: hidden;
+      }
+
+      /* 
+         Make the navbar span nearly full width and 
+         position it in from the edges so it doesn't overlap.
+      */
+      #key {
+        /* Let’s make the navbar fill ~95% of the width 
+           and center it with margin auto. */
+        left: 0;
+        right: 0;
+        transform: none;       
+        margin: 10px auto 0 auto;  /* top:10px, auto sides, no bottom margin */
+        width: 90%;
+        border-radius: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 8px;
+      }
+
+      /* Ensure the top nav is slightly lower to avoid overlap with system UI bars */
+      #key {
+        top: 0;      /* If you prefer 0 so it's truly pinned at the top. 
+                        Or something like top: 10px if you want a small gap. */
+      }
+
+      /* Scale the logo down a bit more */
+      #box1 a.logo {
+        width: 80px;
+        height: 30px;
+        margin-top: 5px;
+      }
+
+      /* Wrap the buttons if there's no room horizontally */
+      #box2 {
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
+        padding: 5px 0;
+      }
+      #box2 .function {
+        padding: 0 10px 0 10px;
+        height: 32px;
+        border-radius: 16px;
+        font-size: 13px;
+      }
+
+      /*
+         Push main content further down 
+         so the nav doesn't overlap the text box.
+      */
+      main {
+        margin: 0 16px;       /* add horizontal space so edges aren't flush */
+		width: 87%;
+        padding-top: 140px;    /* bigger top padding so no overlap */
+        padding-bottom: 1rem;
+      }
+
+      /* Text area a bit smaller on small screens */
+      textarea {
+        height: 45vh;
+      }
+
+      /* Hide line numbers on tiny screens, if desired */
+      #linenos {
+        display: none;
+      }
+    }
+  </style>
+
+  <!-- Minimal inline JS to manage document loading/saving -->
+  <script type="text/javascript">
+    var app = null;
+    function handlePop(evt) {
+      var path = evt.target.location.href;
+      if (path === app.baseUrl) {
+        app.newDocument(true);
+      } else {
+        app.loadDocument(path.split('/').slice(-1)[0]);
+      }
+    }
+    setTimeout(function () {
+      window.onpopstate = function (evt) {
+        try { handlePop(evt); } catch(err) { /* not loaded yet */ }
+      };
+    }, 1000);
+    $(function () {
+      var baseUrl = window.location.href.split('/');
+      baseUrl = baseUrl.slice(0, baseUrl.length - 1).join('/') + '/';
+      app = new haste('Zluqet', { twitter: true, baseUrl: baseUrl });
+      handlePop({ target: window });
+    });
+  </script>
+</head>
+<body>
+  <!-- Any messages that appear -->
+  <ul id="messages"></ul>
+
+  <!-- Floating top nav -->
+  <div id="key">
+    <div id="pointer"></div>
+    <div id="box1">
+      <a href="https://zluqe.org/" class="logo" title="Zluqet">Zluqet</a>
+    </div>
+    <div id="box2">
+      <button class="function button-picture save">Save</button>
+      <button class="function button-picture new">New</button>
+      <button class="function button-picture duplicate">Duplicate &amp; Edit</button>
+      <button class="function button-picture raw">Just Text</button>
+      <button class="function button-picture twitter">Twitter</button>
+    </div>
+  </div>
+
+  <main>
+    <pre id="box" tabindex="0" class="hljs"><code></code></pre>
+    <textarea spellcheck="false"></textarea>
+  </main>
+  <footer id="footer-note">
+	Powered by <a href="https://zluqe.org/">Zluqe</a>, Free Discord Bot Hosting!
+  </footer>
+</body>
 </html>
